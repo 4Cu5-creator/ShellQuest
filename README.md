@@ -1,69 +1,77 @@
-# 🚀 Shell Quest
+# 🚀 Shell Quest（シェル・クエスト）
 
-*日本語版は [README.ja.md](README.ja.md) をどうぞ — `SQ_LANG=ja ./sq start` で日本語プレイ。*
+**基本的なシェルコマンドを学べる**、小さなオフライン Capture-The-Flag ゲーム。
+あなたは故障した恒星船 *Terminal* に乗り込んだエンジニア。各デッキに隠された
+`SQ{...}` 形式のフラグを本物のシェルコマンドで見つけ出し、10のデッキをすべて修理せよ。
 
-A tiny, offline **Capture-The-Flag game that teaches basic shell commands**.
-You're an engineer aboard the failing starship *Terminal*. Repair all 10 decks
-by finding a hidden `SQ{...}` flag on each one — using a real shell command.
+インターネット不要。必要なのは普通の Unix シェルだけ（`bash`, `grep`,
+`find`, `base64`, `sha256sum`）。
 
-No internet, no dependencies beyond a normal Unix shell (`bash`, `grep`,
-`find`, `base64`, `sha256sum`).
-
-## Quick start
+## クイックスタート
 
 ```bash
 cd shellquest
-./sq start          # generates the ship and shows your first mission
+SQ_LANG=ja ./sq start    # 船を生成して最初のミッションを表示
 ```
 
-Then for each deck:
+`SQ_LANG=ja` で日本語モードになります（ロケールが `ja_JP.*` なら自動判定されるので
+省略可）。毎回打つのが面倒なら `export SQ_LANG=ja` をどうぞ。
+
+各デッキの流れ:
 
 ```bash
-./sq brief                      # read the mission
-cd world/level00                # explore the deck with real commands
-ls; cat welcome.txt             # ...find the SQ{...} flag
-cd -                            # back to the game folder
-./sq submit SQ{the_flag_here}   # turn it in to advance
+./sq brief                      # ミッションを読む
+cd world/level00                # 本物のコマンドでデッキを探索
+ls; cat welcome.txt             # ...SQ{...} フラグを見つける
+cd -                            # ゲームフォルダへ戻る
+./sq submit SQ{見つけたフラグ}   # 提出して先へ進む
 ```
 
-Stuck on a deck? `./sq hint`.
+行き詰まったら `./sq hint`。
 
-## Commands
+## コマンド一覧
 
-| Command | What it does |
+| コマンド | 説明 |
 |---|---|
-| `./sq start` | Generate a fresh ship and show deck 0 |
-| `./sq brief` | Show the current deck's mission |
-| `./sq hint` | Reveal a hint for the current deck |
-| `./sq submit SQ{..}` | Submit a flag to advance |
-| `./sq status` | Show your progress bar |
-| `./sq map` | List all decks and what each teaches |
-| `./sq reset` | Rebuild a brand-new ship (new random flags) |
-| `./sq help` | Full help screen |
+| `./sq start` | 新しい船を生成してデッキ0を表示 |
+| `./sq brief` | 現在のデッキのミッションを表示 |
+| `./sq hint` | 現在のデッキのヒントを表示 |
+| `./sq submit SQ{..}` | フラグを提出して先へ進む |
+| `./sq status` | 進捗バーを表示 |
+| `./sq map` | 全デッキと学べる内容を一覧表示 |
+| `./sq reset` | 新しい船を再生成（フラグもランダムに新規） |
+| `./sq help` | ヘルプ画面 |
 
-## The 10 decks
+## 10のデッキ
 
-| Deck | Theme | You'll learn |
+| デッキ | テーマ | 学べること |
 |---|---|---|
-| 0 | Wake Up, Engineer | `ls`, `cat` |
-| 1 | Nothing to See Here | `ls -a` (hidden dotfiles) |
-| 2 | Down the Rabbit Hole | `cd`, `pwd`, `ls` |
-| 3 | Needle in a Haystack | `grep -r` |
-| 4 | Captain's Log | `tail`, `head` |
-| 5 | Lost & Found | `find` |
-| 6 | Take Out the Trash | `rm`, `*` wildcards |
-| 7 | Access Denied | `chmod`, `ls -l` |
-| 8 | The Broken Amulet | `cat file1 file2` |
-| 9 | The Reactor Core | `find` + `chmod` + `base64 -d` |
+| 0 | 目覚めよ、エンジニア | `ls`, `cat` |
+| 1 | ここには何もない | `ls -a`（隠しドットファイル） |
+| 2 | ウサギの穴の奥へ | `cd`, `pwd`, `ls` |
+| 3 | 干し草の中の針 | `grep -r` |
+| 4 | 船長の航海日誌 | `tail`, `head` |
+| 5 | 遺失物捜索 | `find` |
+| 6 | ゴミ出しの時間 | `rm`, `*` ワイルドカード |
+| 7 | アクセス拒否 | `chmod`, `ls -l` |
+| 8 | 壊れたお守り | `cat file1 file2` |
+| 9 | リアクター・コア | `find` + `chmod` + `base64 -d` |
 
-## How it works (for the curious)
+## 言語について
 
-- `./sq reset` regenerates everything under `world/` with a fresh random token,
-  so flags differ every playthrough — you can't just memorize them.
-- Answers are **not** stored in the script in plaintext; `.sq_keys` holds only
-  SHA-256 hashes, and `submit` hashes your guess to compare.
-- Your progress lives in `.sq_state`.
+- `SQ_LANG=ja` で日本語、`SQ_LANG=en` で英語。未指定なら `$LANG` から自動判定。
+- `world/` 内のテキストファイルは**生成時の言語**で書き込まれます。
+  途中で言語を切り替えたら `SQ_LANG=ja ./sq reset` で船を再生成してください
+  （フラグも新しくなります）。
 
-Flags follow the format `SQ{...}`. Copy the whole thing, braces included.
+## 仕組み（気になる人向け）
 
-Have fun, engineer. 🛠️
+- `./sq reset` は毎回新しいランダムトークンで `world/` 以下を再生成するので、
+  プレイのたびにフラグが変わります——暗記では突破できません。
+- 答えはスクリプト内に平文では保存されていません。`.sq_keys` には SHA-256
+  ハッシュだけが入っており、`submit` は入力をハッシュ化して比較します。
+- 進捗は `.sq_state` に保存されます。
+
+フラグの形式は `SQ{...}`。波かっこも含めて丸ごとコピーしてください。
+
+健闘を祈る、エンジニア。🛠️
