@@ -1,2 +1,0 @@
-権限を解除した。筋がいいな。
-Flag: SQ{perm1ss10n_gr4nted_d5f5f8}
