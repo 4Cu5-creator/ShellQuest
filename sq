@@ -1,0 +1,479 @@
+#!/usr/bin/env bash
+#
+#  ███████╗██╗  ██╗███████╗██╗     ██╗      ██████╗ ██╗   ██╗███████╗███████╗████████╗
+#  ██╔════╝██║  ██║██╔════╝██║     ██║     ██╔═══██╗██║   ██║██╔════╝██╔════╝╚══██╔══╝
+#  ███████╗███████║█████╗  ██║     ██║     ██║   ██║██║   ██║█████╗  ███████╗   ██║
+#  ╚════██║██╔══██║██╔══╝  ██║     ██║     ██║▄▄ ██║██║   ██║██╔══╝  ╚════██║   ██║
+#  ███████║██║  ██║███████╗███████╗███████╗╚██████╔╝╚██████╔╝███████╗███████║   ██║
+#  ╚══════╝╚═╝  ╚═╝╚══════╝╚══════╝╚══════╝ ╚══▀▀═╝  ╚═════╝ ╚══════╝╚══════╝   ╚═╝
+#
+#  A terminal CTF that teaches basic shell commands.  Run:  ./sq help
+#
+set -euo pipefail
+
+# --- locate ourselves so sq works from anywhere -----------------------------
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+WORLD="$ROOT/world"
+STATE="$ROOT/.sq_state"
+KEYS="$ROOT/.sq_keys"
+TOKENF="$ROOT/.sq_token"
+LEVELS=10
+
+# --- colors -----------------------------------------------------------------
+if [ -t 1 ]; then
+  R=$'\e[31m'; G=$'\e[32m'; Y=$'\e[33m'; B=$'\e[34m'; M=$'\e[35m'; C=$'\e[36m'
+  BOLD=$'\e[1m'; DIM=$'\e[2m'; N=$'\e[0m'
+else
+  R=""; G=""; Y=""; B=""; M=""; C=""; BOLD=""; DIM=""; N=""
+fi
+
+say()  { printf '%s\n' "$*"; }
+line() { say "${DIM}────────────────────────────────────────────────────────────${N}"; }
+
+sha() { printf '%s' "$1" | sha256sum | cut -d' ' -f1; }
+
+# --- level metadata ---------------------------------------------------------
+LEVEL_NAME=(
+  "Wake Up, Engineer"
+  "Nothing to See Here"
+  "Down the Rabbit Hole"
+  "Needle in a Haystack"
+  "Captain's Log"
+  "Lost & Found"
+  "Take Out the Trash"
+  "Access Denied"
+  "The Broken Amulet"
+  "The Reactor Core"
+)
+LEVEL_TEACH=(
+  "ls, cat"
+  "ls -a"
+  "cd, pwd, ls"
+  "grep -r"
+  "tail, head"
+  "find"
+  "rm, wildcards"
+  "chmod, ls -l"
+  "cat (multiple files)"
+  "find + chmod + base64"
+)
+
+brief_text() {
+  case "$1" in
+  0) cat <<EOF
+You wake in the crew quarters of the starship ${BOLD}Terminal${N}. The lights
+are dim. A single note glows on the floor of ${C}world/level00${N}.
+
+  ${Y}Goal:${N} Read the note and find the flag hidden inside it.
+  ${Y}Skills:${N} ${C}ls${N} (list files), ${C}cat${N} (print a file)
+
+  Try:  ${DIM}cd world/level00 && ls && cat welcome.txt${N}
+EOF
+;;
+  1) cat <<EOF
+The engine room ${C}world/level01${N} looks empty... suspiciously empty.
+Some files like to ${BOLD}hide${N} by starting their name with a dot.
+
+  ${Y}Goal:${N} Reveal the hidden file and read the flag.
+  ${Y}Skills:${N} ${C}ls -a${N} (show hidden dotfiles)
+
+  Try:  ${DIM}ls -a${N}   then  ${DIM}cat .the_file_you_find${N}
+EOF
+;;
+  2) cat <<EOF
+The vault flag is buried deep in nested rooms under ${C}world/level02${N}.
+There are dead-ends and decoys. Walk the halls with ${BOLD}cd${N}, check where
+you are with ${BOLD}pwd${N}.
+
+  ${Y}Goal:${N} Navigate the folders until you find flag.txt.
+  ${Y}Skills:${N} ${C}cd${N}, ${C}pwd${N}, ${C}ls${N}
+
+  Hint:  the real path only ever has ${BOLD}one${N} door forward.
+EOF
+;;
+  3) cat <<EOF
+${C}world/level03${N} is a document archive: dozens of near-identical files.
+Exactly one contains the flag. Reading them one by one is madness.
+
+  ${Y}Goal:${N} Search every file at once for the flag.
+  ${Y}Skills:${N} ${C}grep -r${N} (recursive text search)
+
+  Try:  ${DIM}grep -r 'SQ{' .${N}   or   ${DIM}grep -rl 'SQ{' .${N}
+EOF
+;;
+  4) cat <<EOF
+The captain's ${C}logbook.txt${N} in ${C}world/level04${N} is huge. But the
+captain ${BOLD}always${N} signs the flag on the very last line of the log.
+
+  ${Y}Goal:${N} Read the end of the file.
+  ${Y}Skills:${N} ${C}tail${N} (end of file), ${C}head${N} (start), ${C}wc -l${N} (count)
+
+  Try:  ${DIM}tail logbook.txt${N}   or   ${DIM}tail -n 1 logbook.txt${N}
+EOF
+;;
+  5) cat <<EOF
+Somewhere in the messy ${C}world/level05${N} tree sits a file whose name
+starts with ${BOLD}treasure${N}. You don't know which folder — so hunt for it.
+
+  ${Y}Goal:${N} Locate the treasure file by name, then read it.
+  ${Y}Skills:${N} ${C}find${N} (search the tree by name)
+
+  Try:  ${DIM}find . -name 'treasure*'${N}   then cat the path it prints.
+EOF
+;;
+  6) cat <<EOF
+${C}world/level06${N} is a landfill of ${BOLD}decoy_*.txt${N} junk files with one
+real ${C}treasure.txt${N} buried in the pile. Clear the clutter to see it.
+
+  ${Y}Goal:${N} Delete the decoy files, then read what remains.
+  ${Y}Skills:${N} ${C}rm${N} (remove files), ${C}*${N} wildcards
+
+  Try:  ${DIM}rm decoy_*.txt${N}   then  ${DIM}ls${N}   then  ${DIM}cat treasure.txt${N}
+  ${R}Careful:${N} rm is permanent. Run ${DIM}./sq reset${N} if you nuke too much.
+EOF
+;;
+  7) cat <<EOF
+The flag in ${C}world/level07${N} sits in ${C}flag.txt${N}, but ${BOLD}cat${N} throws
+"Permission denied". The file's read bit is switched off.
+
+  ${Y}Goal:${N} Give yourself permission to read it, then read it.
+  ${Y}Skills:${N} ${C}ls -l${N} (see permissions), ${C}chmod${N} (change them)
+
+  Try:  ${DIM}ls -l${N}   then  ${DIM}chmod u+r flag.txt${N}   then  ${DIM}cat flag.txt${N}
+EOF
+;;
+  8) cat <<EOF
+An ancient amulet snapped in two. In ${C}world/level08${N} you'll find
+${C}left.piece${N} and ${C}right.piece${N}. Each holds half of the flag. Join them.
+
+  ${Y}Goal:${N} Print both halves together, in order, to read the whole flag.
+  ${Y}Skills:${N} ${C}cat file1 file2${N} (print several files back-to-back)
+
+  Try:  ${DIM}cat left.piece right.piece${N}
+EOF
+;;
+  9) cat <<EOF
+${BOLD}${R}FINAL LEVEL — THE REACTOR CORE.${N}
+Deep in ${C}world/level09${N} hides a single ${C}*.enc${N} file. It is:
+  ${DIM}1)${N} lost in the folder tree      → use ${C}find${N}
+  ${DIM}2)${N} unreadable (no read bit)     → use ${C}chmod${N}
+  ${DIM}3)${N} scrambled with base64        → use ${C}base64 -d${N}
+
+  ${Y}Goal:${N} Find it, unlock it, decode it. Everything you've learned.
+
+  Try:  ${DIM}find . -name '*.enc'${N}
+        ${DIM}chmod u+r <that path>${N}
+        ${DIM}base64 -d <that path>${N}
+EOF
+;;
+  esac
+}
+
+hint_text() {
+  case "$1" in
+  0) say "The file is literally named ${C}welcome.txt${N}. ${DIM}cat world/level00/welcome.txt${N}";;
+  1) say "Hidden files start with a dot. ${DIM}ls -a${N} shows them; the flag is in ${C}.crew_manifest${N}.";;
+  2) say "At every folder run ${DIM}ls${N}; follow the only sub-folder that exists until you hit ${C}flag.txt${N}.";;
+  3) say "${DIM}grep -rl 'SQ{' .${N} prints WHICH file matches; then ${DIM}cat${N} that file.";;
+  4) say "${DIM}tail -n 1 logbook.txt${N} shows only the final line.";;
+  5) say "${DIM}find . -name 'treasure*' -type f${N} then ${DIM}cat${N} the exact path.";;
+  6) say "Match many files with a wildcard: ${DIM}rm decoy_*.txt${N}. Then only treasure.txt is left.";;
+  7) say "${DIM}chmod u+r flag.txt${N} adds the 'user read' permission, then ${DIM}cat flag.txt${N}.";;
+  8) say "Order matters: ${DIM}cat left.piece right.piece${N} (left first).";;
+  9) say "Chain it: ${DIM}f=\$(find . -name '*.enc'); chmod u+r \"\$f\"; base64 -d \"\$f\"${N}";;
+  esac
+}
+
+# --- world generation -------------------------------------------------------
+gen_world() {
+  local token="$1"
+  rm -rf "$WORLD"
+  mkdir -p "$WORLD"
+  : > "$KEYS"
+
+  local flags=(
+    "SQ{h3llo_w0rld_${token:0:6}}"
+    "SQ{d0tf1les_r_sn3aky_${token:2:6}}"
+    "SQ{deep_d1ve_ninja_${token:4:6}}"
+    "SQ{grep_g0es_brrr_${token:6:6}}"
+    "SQ{t4il_end_capt41n_${token:8:6}}"
+    "SQ{find_me_1f_you_can_${token:1:6}}"
+    "SQ{tr4sh_c0mpact0r_${token:3:6}}"
+    "SQ{perm1ss10n_gr4nted_${token:5:6}}"
+    "SQ{tw0_h4lves_wh0le_${token:7:6}}"
+    "SQ{r34ct0r_c0re_h3r0_${token:0:8}}"
+  )
+
+  local i
+  for i in "${!flags[@]}"; do
+    printf '%s %s\n' "$i" "$(sha "${flags[$i]}")" >> "$KEYS"
+  done
+
+  # L0 --------------------------------------------------------------------
+  mkdir -p "$WORLD/level00"
+  cat > "$WORLD/level00/welcome.txt" <<EOF
+Welcome aboard the starship Terminal, engineer.
+Ship's power is failing across ten decks. Each deck you repair
+rewards you with a FLAG that looks like SQ{...}.
+
+Submit a flag to advance:   ./sq submit SQ{...}
+
+Your first flag, a freebie to learn 'cat':
+   ${flags[0]}
+EOF
+
+  # L1 --------------------------------------------------------------------
+  mkdir -p "$WORLD/level01"
+  echo "Engine coolant readings. Nothing important here." > "$WORLD/level01/coolant.log"
+  echo "Spare bolts inventory." > "$WORLD/level01/bolts.txt"
+  cat > "$WORLD/level01/.crew_manifest" <<EOF
+CLASSIFIED crew manifest. If you can read this, you found the dotfile.
+Flag: ${flags[1]}
+EOF
+
+  # L2 --------------------------------------------------------------------
+  local p="$WORLD/level02"
+  mkdir -p "$p/basement/reactor_bay/coolant_vault/inner_safe"
+  mkdir -p "$p/attic" "$p/basement/storage" "$p/basement/reactor_bay/office"
+  echo "dusty boxes, dead end." > "$p/attic/junk.txt"
+  echo "just mops." > "$p/basement/storage/mops.txt"
+  echo "old paperwork, nothing here." > "$p/basement/reactor_bay/office/memo.txt"
+  cat > "$p/basement/reactor_bay/coolant_vault/inner_safe/flag.txt" <<EOF
+You navigated the whole ship. Well done.
+Flag: ${flags[2]}
+EOF
+
+  # L3 --------------------------------------------------------------------
+  mkdir -p "$WORLD/level03/archive"
+  local n
+  for n in $(seq -w 1 60); do
+    if [ "$n" = "42" ]; then
+      cat > "$WORLD/level03/archive/report_$n.txt" <<EOF
+Anomaly report #$n
+Deep-scan flagged this record. ${flags[3]}
+EOF
+    else
+      echo "Routine report #$n: all systems nominal, nothing to see." \
+        > "$WORLD/level03/archive/report_$n.txt"
+    fi
+  done
+
+  # L4 --------------------------------------------------------------------
+  mkdir -p "$WORLD/level04"
+  {
+    for n in $(seq 1 300); do
+      echo "Stardate 4${n}: routine log entry, coffee levels stable."
+    done
+    echo "Final entry — Captain signs off: ${flags[4]}"
+  } > "$WORLD/level04/logbook.txt"
+
+  # L5 --------------------------------------------------------------------
+  local q="$WORLD/level05"
+  mkdir -p "$q/deck_a/hold" "$q/deck_b/bay/locker" "$q/deck_c/vent/duct/crawlspace"
+  echo "empty crate" > "$q/deck_a/hold/crate.txt"
+  echo "spare parts" > "$q/deck_b/bay/locker/parts.txt"
+  cat > "$q/deck_c/vent/duct/crawlspace/treasure_chest.txt" <<EOF
+You hunted it down with find. Nice.
+Flag: ${flags[5]}
+EOF
+
+  # L6 --------------------------------------------------------------------
+  mkdir -p "$WORLD/level06"
+  for n in $(seq -w 1 40); do
+    echo "worthless junk file $n, delete me" > "$WORLD/level06/decoy_$n.txt"
+  done
+  cat > "$WORLD/level06/treasure.txt" <<EOF
+The compactor is clear. Here is your reward.
+Flag: ${flags[6]}
+EOF
+
+  # L7 --------------------------------------------------------------------
+  mkdir -p "$WORLD/level07"
+  echo "ls -l shows me as unreadable. chmod u+r flag.txt to fix that." \
+    > "$WORLD/level07/README.txt"
+  cat > "$WORLD/level07/flag.txt" <<EOF
+Permissions unlocked. You're a natural.
+Flag: ${flags[7]}
+EOF
+  chmod 000 "$WORLD/level07/flag.txt"
+
+  # L8 --------------------------------------------------------------------
+  mkdir -p "$WORLD/level08"
+  local whole="${flags[8]}"
+  local half=$(( ${#whole} / 2 ))
+  printf '%s'   "${whole:0:$half}"  > "$WORLD/level08/left.piece"
+  printf '%s\n' "${whole:$half}"    > "$WORLD/level08/right.piece"
+  echo "Two halves of one flag. cat them together, left first." \
+    > "$WORLD/level08/README.txt"
+
+  # L9 --------------------------------------------------------------------
+  local z="$WORLD/level09"
+  mkdir -p "$z/core/shielding/conduit_7/junction"
+  echo "decoy" > "$z/core/notes.txt"
+  echo "decoy" > "$z/core/shielding/manual.txt"
+  printf '%s' "${flags[9]}" | base64 > "$z/core/shielding/conduit_7/junction/core_key.enc"
+  chmod 000 "$z/core/shielding/conduit_7/junction/core_key.enc"
+
+  # ensure everything we made is at least traversable/readable (except the
+  # two we deliberately locked, which we re-lock last)
+  chmod -R u+rwX "$WORLD"
+  chmod 000 "$WORLD/level07/flag.txt"
+  chmod 000 "$z/core/shielding/conduit_7/junction/core_key.enc"
+}
+
+require_world() {
+  if [ ! -d "$WORLD" ] || [ ! -f "$KEYS" ]; then
+    say "${Y}No game world yet. Generating one...${N}"
+    do_reset
+  fi
+}
+
+cur_level() { cat "$STATE" 2>/dev/null || echo 0; }
+
+progress_bar() {
+  local done="$1" total="$2" i out=""
+  for ((i=0;i<total;i++)); do
+    if [ "$i" -lt "$done" ]; then out+="${G}█${N}"; else out+="${DIM}░${N}"; fi
+  done
+  printf '%s' "$out"
+}
+
+# --- commands ---------------------------------------------------------------
+do_reset() {
+  local token
+  token="$(head -c16 /dev/urandom | od -An -tx1 | tr -d ' \n')"
+  echo "$token" > "$TOKENF"
+  gen_world "$token"
+  echo 0 > "$STATE"
+  say "${G}A fresh ship has been generated in:${N} ${C}$WORLD${N}"
+  say ""
+  do_brief
+}
+
+do_brief() {
+  require_world
+  local lvl; lvl="$(cur_level)"
+  if [ "$lvl" -ge "$LEVELS" ]; then do_status; return; fi
+  line
+  say "${BOLD}${M}DECK $lvl — ${LEVEL_NAME[$lvl]}${N}   ${DIM}(teaches: ${LEVEL_TEACH[$lvl]})${N}"
+  line
+  brief_text "$lvl"
+  line
+  say "Explore in:  ${C}cd $WORLD/level0$lvl${N}"
+  say "Stuck?       ${C}./sq hint${N}      Submit:  ${C}./sq submit SQ{...}${N}"
+}
+
+do_hint() {
+  require_world
+  local lvl; lvl="$(cur_level)"
+  if [ "$lvl" -ge "$LEVELS" ]; then say "${G}Game already complete!${N}"; return; fi
+  say "${Y}HINT (deck $lvl):${N}"
+  hint_text "$lvl"
+}
+
+do_status() {
+  require_world
+  local lvl; lvl="$(cur_level)"
+  line
+  say "${BOLD}SHELL QUEST — status${N}"
+  say "Progress: $(progress_bar "$lvl" "$LEVELS")  ${BOLD}$lvl/$LEVELS${N} decks repaired"
+  line
+  if [ "$lvl" -ge "$LEVELS" ]; then
+    say "${G}${BOLD}★ SHIP FULLY RESTORED. You beat Shell Quest! ★${N}"
+    say "Replay with a new random ship:  ${C}./sq reset${N}"
+  else
+    say "Current deck: ${M}$lvl — ${LEVEL_NAME[$lvl]}${N}"
+    say "Run ${C}./sq brief${N} for the mission."
+  fi
+}
+
+do_map() {
+  require_world
+  local lvl i mark; lvl="$(cur_level)"
+  line; say "${BOLD}SHIP MAP${N}"; line
+  for i in $(seq 0 $((LEVELS-1))); do
+    if [ "$i" -lt "$lvl" ]; then mark="${G}[✓]${N}"
+    elif [ "$i" -eq "$lvl" ]; then mark="${Y}[→]${N}"
+    else mark="${DIM}[ ]${N}"; fi
+    printf '%s Deck %s  %-24s %s%s%s\n' "$mark" "$i" "${LEVEL_NAME[$i]}" "$DIM" "${LEVEL_TEACH[$i]}" "$N"
+  done
+}
+
+do_submit() {
+  require_world
+  local guess="${1:-}"
+  [ -z "$guess" ] && { say "${R}Usage:${N} ./sq submit SQ{...}"; return 1; }
+  local lvl; lvl="$(cur_level)"
+  if [ "$lvl" -ge "$LEVELS" ]; then say "${G}You already finished. ./sq reset to replay.${N}"; return; fi
+
+  local want; want="$(grep "^$lvl " "$KEYS" | cut -d' ' -f2)"
+  local got; got="$(sha "$guess")"
+
+  if [ "$got" = "$want" ]; then
+    say ""
+    say "${G}${BOLD}✔ CORRECT!${N} Deck $lvl repaired. ${G}Power restored.${N}"
+    local next=$((lvl+1))
+    echo "$next" > "$STATE"
+    if [ "$next" -ge "$LEVELS" ]; then
+      say ""
+      say "${G}${BOLD}"
+      say "   ★★★  ALL DECKS ONLINE — YOU WIN SHELL QUEST!  ★★★"
+      say "${N}"
+      say "You learned: ls, cat, cd, pwd, grep, tail, find, rm, chmod, base64."
+      say "Play again with a new ship:  ${C}./sq reset${N}"
+    else
+      say ""
+      do_brief
+    fi
+  else
+    say "${R}✘ Nope.${N} That flag doesn't match deck $lvl. Keep digging."
+    say "   ${DIM}(flags look like SQ{...} — copy the whole thing, braces included)${N}"
+    say "   Need a nudge?  ${C}./sq hint${N}"
+    return 1
+  fi
+}
+
+banner() {
+  say "${C}${BOLD}"
+  say "   ____  _   _ _____ _     _        ___  _   _ _____ ____ _____ "
+  say "  / ___|| | | | ____| |   | |      / _ \| | | | ____/ ___|_   _|"
+  say "  \\___ \\| |_| |  _| | |   | |     | | | | | | |  _| \\___ \\ | |  "
+  say "   ___) |  _  | |___| |___| |___  | |_| | |_| | |___ ___) || |  "
+  say "  |____/|_| |_|_____|_____|_____|  \\__\\_\\\\___/|_____|____/ |_|  "
+  say "${N}${DIM}        learn the shell, one flag at a time${N}"
+  say ""
+}
+
+do_help() {
+  banner
+  say "${BOLD}COMMANDS${N}"
+  say "  ${C}./sq start${N}          Begin (generates the ship) and show deck 0"
+  say "  ${C}./sq brief${N}          Show the current deck's mission"
+  say "  ${C}./sq hint${N}           Get a hint for the current deck"
+  say "  ${C}./sq submit SQ{..}${N}  Turn in a flag to advance"
+  say "  ${C}./sq status${N}         Show your progress"
+  say "  ${C}./sq map${N}            Show all decks and what each teaches"
+  say "  ${C}./sq reset${N}          Rebuild a fresh random ship (new flags)"
+  say "  ${C}./sq help${N}           This screen"
+  say ""
+  say "${BOLD}HOW TO PLAY${N}"
+  say "  1. Read the mission:      ${C}./sq brief${N}"
+  say "  2. Explore the deck:      ${C}cd world/level00${N}  then use ls/cat/cd/..."
+  say "  3. Find the ${Y}SQ{...}${N} flag hidden there."
+  say "  4. Submit it:             ${C}./sq submit SQ{...}${N}"
+  say "  5. Repeat through all 10 decks to win."
+}
+
+# --- dispatch ---------------------------------------------------------------
+cmd="${1:-help}"
+case "$cmd" in
+  start)  do_reset ;;
+  reset)  do_reset ;;
+  brief|mission) do_brief ;;
+  hint)   do_hint ;;
+  status) do_status ;;
+  map)    do_map ;;
+  submit) shift; do_submit "${1:-}" ;;
+  help|-h|--help) do_help ;;
+  *) say "${R}Unknown command:${N} $cmd"; say "Run ${C}./sq help${N}"; exit 1 ;;
+esac

@@ -1,0 +1,2 @@
+The compactor is clear. Here is your reward.
+Flag: SQ{tr4sh_c0mpact0r_0acc7d}

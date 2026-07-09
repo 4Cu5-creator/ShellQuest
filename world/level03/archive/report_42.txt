@@ -1,0 +1,2 @@
+Anomaly report #42
+Deep-scan flagged this record. SQ{grep_g0es_brrr_c7db26}
