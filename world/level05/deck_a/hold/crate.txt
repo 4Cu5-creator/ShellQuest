@@ -1,1 +1,1 @@
-empty crate
+空の木箱

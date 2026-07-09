@@ -1,2 +1,2 @@
-You navigated the whole ship. Well done.
-Flag: SQ{deep_d1ve_ninja_acc7db}
+船内をすべて踏破した。見事だ。
+Flag: SQ{deep_d1ve_ninja_3d5f5f}

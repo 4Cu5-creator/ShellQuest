@@ -1,5 +1,7 @@
 # 🚀 Shell Quest
 
+*日本語版は [README.ja.md](README.ja.md) をどうぞ — `SQ_LANG=ja ./sq start` で日本語プレイ。*
+
 A tiny, offline **Capture-The-Flag game that teaches basic shell commands**.
 You're an engineer aboard the failing starship *Terminal*. Repair all 10 decks
 by finding a hidden `SQ{...}` flag on each one — using a real shell command.

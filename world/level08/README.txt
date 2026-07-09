@@ -1,1 +1,1 @@
-Two halves of one flag. cat them together, left first.
+1つのフラグが2つに割れている。left を先にして cat でつなげよ。

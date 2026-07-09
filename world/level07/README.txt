@@ -1,1 +1,1 @@
-ls -l shows me as unreadable. chmod u+r flag.txt to fix that.
+ls -l で見ると読み取り不可になっている。chmod u+r flag.txt で直せる。

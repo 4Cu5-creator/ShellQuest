@@ -1,8 +1,8 @@
-Welcome aboard the starship Terminal, engineer.
-Ship's power is failing across ten decks. Each deck you repair
-rewards you with a FLAG that looks like SQ{...}.
+恒星船 Terminal へようこそ、エンジニア。
+船の電力が10のデッキ全体で落ちかけている。デッキを1つ修理するごとに、
+SQ{...} という形式のフラグが報酬として手に入る。
 
-Submit a flag to advance:   ./sq submit SQ{...}
+フラグを提出して先へ進め:   ./sq submit SQ{...}
 
-Your first flag, a freebie to learn 'cat':
-   SQ{h3llo_w0rld_f680ac}
+最初のフラグはサービスだ。'cat' の練習に:
+   SQ{h3llo_w0rld_486b3d}

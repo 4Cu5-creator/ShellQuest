@@ -1,2 +1,2 @@
-You hunted it down with find. Nice.
-Flag: SQ{find_me_1f_you_can_680acc}
+find で見事に探し当てたな。
+Flag: SQ{find_me_1f_you_can_86b3d5}

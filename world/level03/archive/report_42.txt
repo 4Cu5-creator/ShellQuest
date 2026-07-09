@@ -1,2 +1,2 @@
-Anomaly report #42
-Deep-scan flagged this record. SQ{grep_g0es_brrr_c7db26}
+異常報告 #42
+深層スキャンがこの記録を検知した。 SQ{grep_g0es_brrr_5f5f88}
